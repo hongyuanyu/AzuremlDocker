@@ -42,7 +42,7 @@ RUN conda install -y python=3.6 numpy pyyaml scipy ipython mkl scikit-learn matp
 RUN conda clean -ya
 RUN conda install -y mkl-include cmake cffi typing cython
 RUN conda install -y -c mingfeima mkldnn
-RUN pip install boto3 addict tqdm regex
+RUN pip install boto3 addict tqdm regex pyyaml opencv-python 
 
 
 # Set CUDA_ROOT
