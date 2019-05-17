@@ -1,5 +1,6 @@
 # Tag: nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
-FROM mcr.microsoft.com/azureml/base-gpu:latest 
+# FROM mcr.microsoft.com/azureml/base-gpu:latest
+FROM mcr.microsoft.com/azureml/base-gpu:intelmpi2018.3-cuda9.0-cudnn7-ubuntu16.04
 ENV STAGE_DIR=/root/gpu/install 
 RUN mkdir -p $STAGE_DIR
 
