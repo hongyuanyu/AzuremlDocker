@@ -9,8 +9,6 @@ ENV LD_LIBRARY_PATH "/usr/local/cuda/extras/CUPTI/lib64:${LD_LIBRARY_PATH}"
 # Install Common Dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    --allow-change-held-packages \
-    apt-utils
     # SSH and RDMA
     libmlx4-1 \
     libmlx5-1 \
@@ -20,7 +18,9 @@ RUN apt-get update && \
     libdapl2 \
     dapl2-utils \
     openssh-client \
-    openssh-server \
+    openssh-server && \
+    apt-get install -y --no-install-recommends \
+    --allow-change-held-packages \
     vim \
     tmux \
     unzip \
@@ -73,7 +73,9 @@ RUN cd /tmp && \
     rm -rf /opt/intel/compilers_and_libraries_${INTEL_MPI_VERSION}/linux/mpi/intel64/lib/debug* && \
     echo "source /opt/intel/compilers_and_libraries_${INTEL_MPI_VERSION}/linux/mpi/intel64/bin/mpivars.sh" >> ~/.bashrc
 
-RUN conda install -y python=3.6 numpy pyyaml scipy ipython mkl scikit-learn matplotlib pandas setuptools Cython h5py graphviz libgcc mkl-include cmake cffi typing cython  mingfeima mkldnn \
+RUN conda install -y python=3.6 numpy pyyaml scipy ipython mkl scikit-learn matplotlib pandas setuptools Cython h5py graphviz libgcc mkl-include cmake cffi typing cython && \
+     conda install -y -c mingfeima mkldnn && \
+     conda install -c anaconda gxx_linux-64
 RUN conda clean -ya
 RUN pip install boto3 addict tqdm regex pyyaml opencv-python azureml-defaults opencv-contrib-python
 # Set CUDA_ROOT
@@ -83,7 +85,7 @@ RUN export CUDA_HOME="/usr/local/cuda"
 RUN conda install -y pytorch torchvision  -c pytorch
 
 # Install horovod
-RUN HOROVOD_GPU_ALLREDUCE=NCCL pip install --no-cache-dir horovod==0.15.2
+RUN HOROVOD_GPU_ALLREDUCE=NCCL pip install --no-cache-dir horovod==0.16.1
 
 #Install apex
 RUN pip uninstall -y apex || :
