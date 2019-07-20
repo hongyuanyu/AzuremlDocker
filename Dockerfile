@@ -38,7 +38,9 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 #    rm ~/anaconda.sh
 
 ENV PATH /opt/miniconda/bin:$PATH
-RUN echo 'export PATH=/opt/miniconda/bin:$PATH' > /etc/profile.d/conda.sh
+#RUN echo 'export PATH=/opt/miniconda/bin:$PATH' > /etc/profile.d/conda.sh
+RUN pip uninstall setuptools && \
+    pip install setuptools
 # Install general libraries
 RUN conda install -y python=3.6 numpy pyyaml scipy ipython mkl scikit-learn matplotlib pandas setuptools Cython h5py graphviz libgcc
 RUN conda clean -ya
