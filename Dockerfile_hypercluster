@@ -1,0 +1,141 @@
+FROM nvidia/cuda:10.0-devel-ubuntu18.04
+
+MAINTAINER Ben Huntley <bhuntley@microsoft.com>
+
+ARG uid
+ARG did
+ARG domain
+ARG alias
+ARG port_num
+
+ENV USER ${domain}.${alias}
+ENV wdir /opt
+ENV TZ=America/Vancouver
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+RUN apt-get update && apt-get install -y \
+sudo \
+make \
+vim \
+locate \
+build-essential \
+wget \
+tar \
+bzip2 \
+environment-modules \
+libhwloc-dev \
+hwloc \
+libhwloc-common \
+libhwloc-plugins \
+openssh-server \
+binutils \
+tcl \
+libibverbs-dev \
+git
+
+RUN echo "${domain}.domain users:x:${did}:${domain}.${alias}" >> /etc/group \
+&& echo "${domain}.${alias}:x:${uid}:${did}:${alias},,,:/home/${alias}:/bin/bash" >> /etc/passwd \
+&& echo "${domain}.${alias}:*:17575:0:99999:7:::" >> /etc/shadow \
+&& echo "${domain}.${alias} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${alias} \
+&& echo "  " >> /etc/sudoers.d/${alias}
+
+RUN echo 'ALL ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+RUN mkdir /home/${alias} && chown ${USER} /home/${alias}
+
+WORKDIR /
+
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR ${wdir}
+
+COPY ucx-1.5.0.tar.gz ucx-1.5.0.tar.gz
+COPY openmpi-4.0.0.tar.gz openmpi-4.0.0.tar.gz
+
+RUN tar zxf ucx-1.5.0.tar.gz && cd ucx-1.5.0 && ./configure --prefix=/usr/local/lib/ucx && make -j $(nproc --all) && make install
+
+RUN tar zxf openmpi-4.0.0.tar.gz && cd openmpi-4.0.0 && ./configure --with-ucx=/usr/local/lib/ucx/ --prefix=/usr/local/lib/openmpi && make -j $(nproc --all) && make install 
+
+# Fix ssh for passwordless connection between containers.
+RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sudo sed -i '/^#Port/d' /etc/ssh/sshd_config
+RUN sudo sed -i '/^Port/d' /etc/ssh/sshd_config
+RUN sudo echo "Port ${port_num}" >> /etc/ssh/sshd_config
+
+EXPOSE ${port_num}
+
+USER ${USER}
+
+RUN ssh-keygen -t rsa -N "" -f /home/${alias}/.ssh/id_rsa
+RUN cat /home/${alias}/.ssh/id_rsa.pub >> /home/${alias}/.ssh/authorized_keys && chmod 600 /home/${alias}/.ssh/authorized_keys
+RUN ssh-keyscan -H localhost >> /home/${alias}/.ssh/known_hosts
+RUN echo "Host *\n\tStrictHostKeyChecking no\n\tPort ${port_num}" >> /home/${alias}/.ssh/config
+RUN sudo chmod 755 /home/${alias}/.ssh/config
+
+COPY gcr_pub_keys gcr_pub_keys
+RUN cat gcr_pub_keys >> /home/${alias}/.ssh/authorized_keys
+
+COPY IMB-MPI1 IMB-MPI1
+RUN sudo chown ${USER}:"${domain}.domain users" IMB-MPI1
+RUN sudo chmod +x IMB-MPI1
+
+USER root
+
+ENTRYPOINT sudo service ssh start && bash
+
+ENV MINICONDA_VERSION latest
+
+ENV PATH /opt/miniconda/bin:$PATH
+
+RUN wget -qO /tmp/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh && \
+
+    bash /tmp/miniconda.sh -bf -p /opt/miniconda && \
+
+    conda clean -ay && \
+
+    rm -rf /opt/miniconda/pkgs && \
+
+    rm /tmp/miniconda.sh && \
+
+    find / -type d -name __pycache__ | xargs rm -rf
+
+RUN conda install -y python=3.6 numpy pyyaml scipy ipython mkl scikit-learn matplotlib pandas setuptools Cython h5py graphviz libgcc mkl-include cmake cffi typing cython && \
+
+     conda install -y -c mingfeima mkldnn && \
+
+     conda install -c anaconda gxx_linux-64
+
+RUN conda clean -ya
+
+RUN pip install boto3 addict tqdm regex pyyaml opencv-python azureml-defaults opencv-contrib-python nltk spacy
+
+# Set CUDA_ROOT
+
+RUN export CUDA_HOME="/usr/local/cuda"
+RUN conda install pytorch torchvision cudatoolkit=10.0 -c pytorch
+RUN conda install faiss-gpu cudatoolkit=10.0 -c pytorch # For CUDA10
+#Install apex
+
+RUN pip uninstall -y apex || :
+
+RUN cd /tmp && \
+
+    SHA=ToUcHMe git clone https://github.com/NVIDIA/apex.git
+
+RUN cd /tmp/apex/ && \
+
+    python setup.py install --cuda_ext --cpp_ext && \
+
+    rm -rf /tmp/apex*
+RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    apt-get update && \
+    apt-get install libcurl3-gnutls $(apt-cache search libgnutls[0-9][0-9]|cut -d' ' -f 1)  libfuse2 blobfuse -y && \
+    rm packages-microsoft-prod.deb
+RUN apt-get install $(apt-cache search libicu[0-9][0-9]|cut -d' ' -f 1) rsync libunwind-dev wget libssl1.0.0 -y && \
+    wget -O azcopy.tar.gz https://aka.ms/downloadazcopylinux64 && \
+    tar -xf azcopy.tar.gz && \
+    bash install.sh && \
+    rm -rf azcopy azcopy.tar.gz
+    
