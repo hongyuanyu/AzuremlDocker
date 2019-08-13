@@ -43,8 +43,8 @@ RUN echo "${domain}.domain users:x:${did}:${domain}.${alias}" >> /etc/group \
 RUN echo 'ALL ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
 RUN mkdir /home/${alias} && chown ${USER} /home/${alias}
-ENV PATH /opt/miniconda/bin:$PATH
 
+ENV PATH /opt/miniconda/bin:$PATH
 WORKDIR /
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -82,7 +82,6 @@ RUN sudo chown ${USER}:"${domain}.domain users" IMB-MPI1
 RUN sudo chmod +x IMB-MPI1
 
 
-
 USER root
 
 ENV MINICONDA_VERSION latest
@@ -100,6 +99,7 @@ RUN wget -qO /tmp/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-${
     rm /tmp/miniconda.sh && \
 
     find / -type d -name __pycache__ | xargs rm -rf
+
 RUN conda install -y python=3.6 numpy pyyaml scipy ipython mkl scikit-learn matplotlib pandas setuptools Cython h5py graphviz libgcc mkl-include cmake cffi typing cython && \
 
      conda install -y -c mingfeima mkldnn && \
@@ -133,14 +133,12 @@ RUN wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-p
     apt-get update && \
     apt-get install libcurl3-gnutls $(apt-cache search libgnutls[0-9][0-9]|cut -d' ' -f 1)  libfuse2 blobfuse -y && \
     rm packages-microsoft-prod.deb
-RUN apt-get install $(apt-cache search libicu[0-9][0-9]|cut -d' ' -f 1) rsync libunwind-dev wget libssl1.0.0 tmux -y && \
+RUN apt-get install $(apt-cache search libicu[0-9][0-9]|cut -d' ' -f 1) rsync libunwind-dev wget libssl1.0.0 -y && \
     wget -O azcopy.tar.gz https://aka.ms/downloadazcopylinux64 && \
     tar -xf azcopy.tar.gz && \
     bash install.sh && \
     rm -rf azcopy azcopy.tar.gz
-
 RUN echo "export PATH=$PATH:/opt/miniconda/bin" >> /etc/bash.bashrc
-
 ENTRYPOINT sudo service ssh start && bash
 
 
