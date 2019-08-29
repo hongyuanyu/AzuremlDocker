@@ -32,31 +32,16 @@ openssh-server \
 binutils \
 tcl \
 libibverbs-dev \
-git
-
-RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends \
-    libopenblas-dev \
-    libopencv-dev \
-    libyaml-dev && \
-    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	python3-pip \
-	build-essential \
-        cmake \
-        git \
-        curl \
-        vim \
-        tmux \
-	screen \
-        htop \
-        ca-certificates \
-        libnccl2 \
-        libnccl-dev \
-        libjpeg-dev \
-	libpng-dev \
-	octave &&\
-	rm -rf /var/lib/apt/lists/*
+git \
+libopenblas-dev \
+libopencv-dev \
+libyaml-dev \
+tmux \
+htop \
+libnccl2 \
+libnccl-dev \
+libjpeg-dev \
+libpng-dev
 
 RUN echo "${domain}.domain users:x:${did}:${domain}.${alias}" >> /etc/group \
 && echo "${domain}.${alias}:x:${uid}:${did}:${alias},,,:/home/${alias}:/bin/bash" >> /etc/passwd \
